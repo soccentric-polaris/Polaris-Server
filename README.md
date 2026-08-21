@@ -1,102 +1,40 @@
-# Polaris Server The **Polaris Server** is the central orchestration and data-collection backend for the Polaris IV&V (Independent Validation & Verification) tool suite. It exposes: - A **gRPC service** (`HalService`) for the embedded HAL Client App to submit test results and receive streaming commands.
-- A **REST/HTTP API** (`/api/v1`) for the Web UI and external tooling.
-- A **PostgreSQL** backend with versioned migrations.
-- **OTA firmware upgrade** orchestration.
-- **Prometheus metrics** (optional). --- ## 🚀 Quick Start (Docker — Recommended) **The easiest and most reliable way** to get started on any machine: ```bash
-cd docker
-./setup.sh
-``` This will:
-1. Check Docker prerequisites
-2. Create `.env` from `.env.example`
-3. Build the Docker image for your platform (auto-detected)
-4. Start PostgreSQL and dev environment
-5. You're ready to build! Then enter the container and build:
+# Polaris-Server
+
+## Project Summary
+
+Polaris-Server is the central C++ orchestration and data-collection service for the Polaris IV&V platform. Its application entry points, configuration, logging, database, gRPC server, REST controllers, orchestration services, repositories, registry, and utilities live under `src/`, `internal/`, and `cmd/`. The server accepts HAL-client traffic over gRPC, exposes an HTTP API for dashboards and tooling, persists operational data in PostgreSQL, and coordinates test runs, schedules, heartbeats, logs, notifications, alerts, audit records, and OTA artifacts.
+
+The repository contains versioned SQL migrations from initial schema through runs, results, logs, OTA, audit, notifications, alerts, application settings, and result fields. Repository classes isolate persistence for targets, runs, results, logs, schedules, templates, tokens, users, OTA, notifications, and audit data. gRPC service implementations handle client and HAL interactions, while REST controllers expose auth, runs, modules, target, logs, settings, OTA, and alert routes. Docker Compose, devcontainer files, CMake presets, environment examples, and local setup documentation support development.
+
+Automated evidence includes unit tests for registry, backpressure, threshold/anomaly services, badges, time, result conversion, UUIDs, hashes, configuration, and migration integration. The CMake presets and README declare debug, release, test, and ASan workflows. Several higher-level guarantees still depend on PostgreSQL, gRPC peers, authentication secrets, migrations, and real OTA artifacts, so this README does not imply that a production deployment has been exercised.
+
+## Feature Inventory
+
+| # | Name / Description | Implemented? | Test Coverage? | Manual Test |
+|---:|---|---|---|---|
+| 1 | CMake build and executable entry point | Implemented | Configuration test and build presets | [ ] Manual verification required |
+| 2 | Environment/configuration loading and logging | Implemented | `test/config_test.cpp` | [ ] Manual verification required |
+| 3 | PostgreSQL client and migration runner | Implemented | `MigrationRunnerTest.cc` | [ ] Manual verification required |
+| 4 | Repository persistence layer | Implemented | Indirect service/integration coverage; matrix incomplete | [ ] Manual verification required |
+| 5 | HAL/client gRPC services | Implemented | Backpressure test; full wire coverage unclear | [ ] Manual verification required |
+| 6 | REST API controllers | Implemented | Service tests cover selected behavior; route matrix incomplete | [ ] Manual verification required |
+| 7 | Module registry and module discovery | Implemented | `ModuleRegistryTest.cc` | [ ] Manual verification required |
+| 8 | Run scheduling and orchestration | Implemented | Badge/service tests; end-to-end run coverage partial | [ ] Manual verification required |
+| 9 | Target heartbeats and retention scheduling | Implemented | No focused tests found | [ ] Manual verification required |
+| 10 | Logs, notifications, alerts, and audit records | Implemented | Alert/audit-related tests partial | [ ] Manual verification required |
+| 11 | OTA artifact storage and orchestration | Partial | No complete OTA integration test found | [ ] Manual verification required |
+| 12 | API authentication, sessions, and bearer tokens | Implemented | Hash/config tests; security matrix incomplete | [ ] Manual verification required |
+| 13 | Docker Compose and devcontainer workflows | Implemented | Workflow files present; container run unverified | [ ] Manual verification required |
+| 14 | Debug, release, ASan, and CTest workflows | Implemented | `ctest --test-dir build/test --output-on-failure` declared | [ ] Manual verification required |
+
+## Validation
+
 ```bash
-docker exec -it polaris-dev bash
-cmake --preset debug && cmake --build build/debug
-``` ### Alternative: VS Code Dev Container Open this project in VS Code and:
-1. Install the "Dev Containers" extension
-2. Press `F1` → "Dev Containers: Reopen in Container"
-3. Wait for build (first time takes ~10 min) Everything is configured automatically! See [docker/README.md](docker/README.md) for detailed Docker documentation. --- ## Architecture Overview ```
-HAL Client (embedded) ──gRPC (port 9090)──► HalServiceImpl │
-Web UI/ REST clients ──HTTP (port 8080)──► Drogon REST API │ ┌──────────┴──────────┐ │ Service Layer │ │ RunService │ │ LogService │ │ AuthService │ │ OtaService ... │ └──────────┬──────────┘ │ ┌──────────┴──────────┐ │ Repository Layer │ │ (Drogon ORM/ PG) │ └──────────┬──────────┘ │ PostgreSQL 15+
-``` --- ## Prerequisites (Native Build) **Note:** Using Docker (see Quick Start above) avoids all manual dependency installation. For native builds without Docker: | Tool | Version |
-|------|---------|
-| CMake | 3.22+ |
-| vcpkg | latest |
-| C++ compiler | GCC 12+ or Clang 16+ |
-| PostgreSQL | 15+ |
-| protoc + grpc_cpp_plugin | matching vcpkg grpc version | Set `VCPKG_ROOT` in your environment before building. --- ## Quick Start (Local Dev) ```bash
-cp .env.example .env
-# Edit .env — at minimum set POLARIS_DB_* and POLARIS_SESSION_SECRET # Start Postgres
-docker compose -f docker/docker-compose.yml up postgres -d # Build and run (loads .env automatically)
-./scripts/run_dev.sh
-``` Or with Docker Compose (full stack): ```bash
-docker compose -f docker/docker-compose.yml up --build
-``` --- ## Building ```bash
-# Debug (default dev preset)
 cmake --preset debug
-cmake --build build/debug # Release
-cmake --preset release
-cmake --build build/release # Run tests
+cmake --build build/debug
 cmake --preset test
 cmake --build build/test
-ctest --test-dir build/test --output-on-failure # ASan
-cmake --preset asan
-cmake --build build/asan
-``` --- ## Configuration All configuration is via environment variables. See `.env.example` for the full list. | Variable | Default | Description |
-|----------|---------|-------------|
-| `POLARIS_GRPC_LISTEN` | `0.0.0.0:9090` | gRPC bind address |
-| `POLARIS_HTTP_LISTEN` | `0.0.0.0:8080` | HTTP bind address |
-| `POLARIS_DB_HOST` | `localhost` | PostgreSQL host |
-| `POLARIS_DB_NAME` | `polaris` | Database name |
-| `POLARIS_DB_USER` | `polaris` | DB username |
-| `POLARIS_DB_PASSWORD` | *(required)* | DB password |
-| `POLARIS_SESSION_SECRET` | *(required, ≥32 chars)* | Session signing key |
-| `POLARIS_REGISTRY_PATH` | `registry.yaml` | Module registry YAML |
-| `POLARIS_OTA_STORAGE_PATH` | `/var/polaris/ota` | OTA artifact directory |
-| `POLARIS_LOG_LEVEL` | `info` | Log level (trace/debug/info/warn/error) | --- ## Module Registry Modules are declared in a YAML file (path set by `POLARIS_REGISTRY_PATH`): ```yaml
-modules: - id: "com.example.temperature" name: "Temperature Monitor" description: "Reads temperature from sensor A" version: "1.2.0" result_type_url: "type.googleapis.com/polaris.TempResult" config_type_url: "type.googleapis.com/polaris.TempConfig" modes: ["single_shot", "monitoring"]
-``` --- ## Database Migrations SQL migration files live in `migrations/`. They are applied automatically at startup in alphabetical order. Migrations are idempotent (tracked in `schema_migrations`). To add a new migration, create `migrations/NNNN_description.sql`. --- ## API All protected endpoints require either:
-- A session cookie (from `POST/api/v1/auth/login`), or
-- An `Authorization: Bearer <token>` header. ### Key endpoints | Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v1/health` | Health check |
-| POST | `/api/v1/auth/login` | Login → sets session |
-| POST | `/api/v1/auth/tokens` | Create API token |
-| GET | `/api/v1/modules` | List test modules |
-| POST | `/api/v1/runs` | Start a test run |
-| GET | `/api/v1/runs/{id}` | Get run details |
-| GET | `/api/v1/runs/{id}/logs` | List run logs |
-| GET | `/api/v1/runs/{id}/logs/tail` | SSE live log tail |
-| GET | `/api/v1/target` | Get board info |
-| POST | `/api/v1/target/heartbeat` | Board heartbeat |
-| POST | `/api/v1/ota/upload` | Upload OTA artifact |
-| POST | `/api/v1/ota/{id}/trigger` | Trigger OTA upgrade | --- ## Decisions Log | Decision | Rationale |
-|----------|-----------|
-| gRPC sync API for unary, streaming wait-loop | Simpler than async CQ for initial impl; async CQ adds complexity without benefit at this scale |
-| Drogon for REST | Built-in PG ORM, async, WebSocket, SSE, session management |
-| argon2id for passwords | OWASP recommended |
-| SHA-256 for API tokens | Tokens are long random strings; SHA-256 is fast and sufficient |
-| 1-minute minimum cron resolution | Full cron parser adds a dependency; document the limitation |
-| Single `board` row (unique partial index) | The system targets exactly one physical test board |
-| Migrations at startup | Ensures schema is always up to date; no separate migration tool needed |
-| vcpkg manifest mode | Reproducible dependency pinning per repo | ## Build ```sh
-cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build -j$(nproc)
-``` Binary: `build/polaris-server` ## Run (dev) ```sh
-./build/polaris-server --config etc/polaris/server.toml --log-level debug
-``` Without a config file the binary starts with compiled-in defaults. ## Test ```sh
-cmake --build build --target config-test
-ctest --test-dir build --output-on-failure
-``` ## Config Default path: `/etc/polaris/server.toml`. See `etc/polaris/server.toml` for all keys and defaults. CLI flags override file values: | Flag | Default |
-|------|---------|
-| `--config PATH` | `/etc/polaris/server.toml` |
-| `--log-level LEVEL` | `info` | ## Implementation Status | Step | Status |
-|------|--------|
-| 1 · Skeleton + config + logger | ✓ done |
-| 2 · DB layer + migrations | — |
-| 3 · DB CRUD (runs + batches) | — |
-| 4 · Ingest queue + result writer | — |
-| 5 · gRPC bidi server | — |
-| … | — |
+ctest --test-dir build/test --output-on-failure
+```
+
+Provision PostgreSQL and secrets before running integration or API workflows. Verify gRPC interoperability, REST authentication, migrations, OTA, and retention manually.
