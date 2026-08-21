@@ -2,11 +2,33 @@
 
 ## Project Summary
 
-Polaris-Server is the central C++ orchestration and data-collection service for the Polaris IV&V platform. Its application entry points, configuration, logging, database, gRPC server, REST controllers, orchestration services, repositories, registry, and utilities live under `src/`, `internal/`, and `cmd/`. The server accepts HAL-client traffic over gRPC, exposes an HTTP API for dashboards and tooling, persists operational data in PostgreSQL, and coordinates test runs, schedules, heartbeats, logs, notifications, alerts, audit records, and OTA artifacts.
+- Polaris-Server is the central C++ orchestration and data-collection service
+  for the Polaris IV&V platform. Its application entry points,
+  configuration, logging, database, gRPC server, REST controllers,
+  orchestration services, repositories, registry, and utilities live under
+  `src/`, `internal/`, and `cmd/`. The server accepts HAL-client traffic
+  over gRPC, exposes an HTTP API for dashboards and tooling, persists
+  operational data in PostgreSQL, and coordinates test runs, schedules,
+  heartbeats, logs, notifications, alerts, audit records, and OTA
+  artifacts.
 
-The repository contains versioned SQL migrations from initial schema through runs, results, logs, OTA, audit, notifications, alerts, application settings, and result fields. Repository classes isolate persistence for targets, runs, results, logs, schedules, templates, tokens, users, OTA, notifications, and audit data. gRPC service implementations handle client and HAL interactions, while REST controllers expose auth, runs, modules, target, logs, settings, OTA, and alert routes. Docker Compose, devcontainer files, CMake presets, environment examples, and local setup documentation support development.
+- The repository contains versioned SQL migrations from initial schema
+  through runs, results, logs, OTA, audit, notifications, alerts,
+  application settings, and result fields. Repository classes isolate
+  persistence for targets, runs, results, logs, schedules, templates,
+  tokens, users, OTA, notifications, and audit data. gRPC service
+  implementations handle client and HAL interactions, while REST
+  controllers expose auth, runs, modules, target, logs, settings, OTA, and
+  alert routes. Docker Compose, devcontainer files, CMake presets,
+  environment examples, and local setup documentation support development.
 
-Automated evidence includes unit tests for registry, backpressure, threshold/anomaly services, badges, time, result conversion, UUIDs, hashes, configuration, and migration integration. The CMake presets and README declare debug, release, test, and ASan workflows. Several higher-level guarantees still depend on PostgreSQL, gRPC peers, authentication secrets, migrations, and real OTA artifacts, so this README does not imply that a production deployment has been exercised.
+- Automated evidence includes unit tests for registry, backpressure,
+  threshold/anomaly services, badges, time, result conversion, UUIDs,
+  hashes, configuration, and migration integration. The CMake presets and
+  README declare debug, release, test, and ASan workflows. Several
+  higher-level guarantees still depend on PostgreSQL, gRPC peers,
+  authentication secrets, migrations, and real OTA artifacts, so this
+  README does not imply that a production deployment has been exercised.
 
 ## Feature Inventory
 
