@@ -52,11 +52,9 @@
 ## Validation
 
 ```bash
-cmake --preset debug
-cmake --build build/debug
-cmake --preset test
-cmake --build build/test
-ctest --test-dir build/test --output-on-failure
+# The build is Docker-based — the default and only build path:
+make build          # docker-build-server (x86 production)
+make test           # ctest (unit label) inside the Docker build container
 ```
 
 Provision PostgreSQL and secrets before running integration or API workflows. Verify gRPC interoperability, REST authentication, migrations, OTA, and retention manually.
